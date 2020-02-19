@@ -4,7 +4,9 @@ Este projeto apresenta uma implementação `pyspark` resolvendo 5 questões a pa
 
 Fonte​ oficial​​ do​​ dateset: http://ita.ee.lbl.gov/html/contrib/NASA-HTTP.html
 
-- [Jul​ 01​ to Jul​ 31,​ ASCII​ format,​ 20.7​ MB​ gzip compressed​, 205.2​ ​MB.]("ftp://ita.ee.lbl.gov/traces/NASA_access_log_Jul95.gz")
+- [Jul​ 01​ to Jul​ 31,​ ASCII​ format,​ 20.7​ MB​ gzip compressed​, 205.2​ ​MB.](ftp://ita.ee.lbl.gov/traces/NASA_access_log_Jul95.gz)
+- [Aug 04 to Aug 31, ASCII format, 21.8 MB gzip compressed, 167.8 MB.](ftp://ita.ee.lbl.gov/traces/NASA_access_log_Aug95.gz)
+
 
 O dataset possui todas as requisições HTTP para o servidor da **NASA Kennedy Space​​ Center​ WWW​​ na​ Flórida​​** para​ um​​ período​​ específico.
 
@@ -18,16 +20,15 @@ Os​​ logs​ estão​​ em​​ arquivos​​ ASCII​ com​ uma​ lin
 
 ## Setup
 
-1. Python >= 3.5.2
-2. Pip >= 19.0.3
-3. Virtualenv >= 16.4.3
+1. Python >= 3.7.1
+2. Virtualenv >= 16.4.3
+3. Wget >= 1.17.1
 
 ## Deploy
 
-1. clone o presente repositório: `git clone git@github.com:imbrito/pyspark-example.git`.
-2. acesse a pasta do projeto: `cd pyspark-example`.
-3. crie uma virtualenv: `virtualenv venv`.
-4. ative o ambiente: `source venv/bin/activate`.
-5. instale as dependências: `pip install -r requirements.txt`.
-6. ative a variavel de ambiente SPARK_LOCAL_IP: `source local.env`.
-7. execute o pipeline: `python pyspark_example.py`.
+1. clone o presente repositório: `$ git clone git@github.com:imbrito/pyspark-example.git`.
+2. acesse a pasta do projeto: `$ cd pyspark-example`.
+3. faça download dos aqruivos de entrada: `$ make wget`.
+4. instale as dependências: `$ make install`.
+5. ative o ambiente: `$ source venv/bin/activate`.
+6. execute o pipeline: `$ python run.py`.
