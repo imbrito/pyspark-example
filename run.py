@@ -6,13 +6,13 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import StructField, StructType, StringType, IntegerType, TimestampType
 from datetime import datetime
 import os
+import logging
 
+
+logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", datefmt="%y/%m/%d %H:%M:%S", level=logging.INFO)
+logger = logger = logging.getLogger(__name__)
 
 PWD = os.getenv("PWD")
-
-
-def format_logger():
-    return {"datetime":datetime.now().strftime("%y/%m/%d %H:%M:%S"),"level":"INFO"}
 
 
 def schema():
@@ -25,7 +25,7 @@ def schema():
 
 def parser(row):
     raw = {}
-    item = row.asDict()['value']
+    item = row.asDict()["value"]
     item = str(item).split(' ')
     try:
         raw["host"] = item[0]
@@ -34,19 +34,18 @@ def parser(row):
         raw["http_code"] = item[8]
         raw["bytes"] = 0 if item[9] == '-' else int(item[9])
     except Exception as e:
-        # print("{datetime} WARN {exception}.".format(datetime=format_logger()["datetime"], exception=e))
+        # logger.error(e)
         return {}
     return raw
 
 
-if __name__ == "__main__":
-
+def run():
     data = [ "{pwd}/data/NASA_access_log_{y}.gz".format(pwd=PWD, y=x) for x in ["Jul95", "Aug95"] ]
     
-    conf = SparkConf().setAll([('spark.executor.memory', '4g'), \
-                               ('spark.executor.cores', '4'), \
-                               ('spark.cores.max', '4'), \
-                               ('spark.driver.memory','4g')])
+    conf = SparkConf().setAll([("spark.executor.memory", "4g"), \
+                               ("spark.executor.cores", "4"), \
+                               ("spark.cores.max", "4"), \
+                               ("spark.driver.memory","4g")])
 
     spark = SparkSession.builder \
                         .config(conf=conf) \
@@ -56,36 +55,40 @@ if __name__ == "__main__":
     # spark.sparkContext.setLogLevel("INFO")
     # log = spark._jvm.org.apache.log4j.LogManager.getLogger("NASA Test")
     # log.warn("build a new instance.")
-    print("{datetime} {level} Build a new instance.".format(**format_logger()))
     
-    print("{datetime} {level} Read files: {data}.".format(**format_logger(), data=data))
+    logger.info("Build a new instance.")
+    logger.info("Read files: {data}.".format(data=data))
     df = spark.read.text(data)
 
-    print("{datetime} {level} Create rdd used method parser.".format(**format_logger()))
+    logger.info("Create rdd used method parser.")
     rdd = df.rdd.map(parser)
 
-    print("{datetime} {level} Parser rdd to df with schema.".format(**format_logger()))
+    logger.info("Parser rdd to df with schema.")
     df = rdd.toDF(schema=schema())
 
-    print("{datetime} {level} Solution 5 questions.".format(**format_logger()))
-    print("{datetime} {level} Question 1: Número​ de​ hosts​ únicos.".format(**format_logger()))
+    logger.info("Solution 5 questions.")
+    logger.info("Question 1: What is the number of unique hosts?")
     df.select(df.host).distinct().agg(F.count(df.host).alias("hosts")).show(truncate=False)
 
-    print("{datetime} {level} Question 2: O total de erros 404.".format(**format_logger()))
+    logger.info("Question 2: What is the total number of 404 errors?")
     df.filter(df.http_code == "404").agg(F.count(df.http_code).alias("errors")).show(truncate=False)
 
-    print("{datetime} {level} Question 3: Os​ ​5 URLs​​ que​ mais​​ causaram​ ​erro​ 404.".format(**format_logger()))
+    logger.info("Question 3: Which ​5 URLs​​ cause the most 404 errors?")
     grouped = df.filter(df.http_code == "404") \
                 .groupBy(df.host,df.http_code) \
                 .agg(F.count(df.host).alias("errors"))
     grouped.orderBy(grouped.errors.desc()).show(5, truncate=False)
 
-    print("{datetime} {level} Question 4: Quantidade de erros 404 por dia.".format(**format_logger()))
+    logger.info("Question 4: How many 404 erros per day?")
     grouped = df.filter(df.http_code == "404") \
                 .withColumn("date",F.to_date(df.timestamp))  
     grouped.groupBy("date","http_code") \
            .agg(F.count("http_code").alias("errors")) \
            .orderBy(grouped.date.desc()).show(62, truncate=False)
 
-    print("{datetime} {level} Question 5: O total de bytes retornados.".format(**format_logger()))
+    logger.info("Question 5: What is the total number of bytes returned?")
     df.agg(F.sum(df.bytes).alias("total_bytes")).show(truncate=False)
+
+
+if __name__ == "__main__":
+    run()
