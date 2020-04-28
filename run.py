@@ -7,11 +7,16 @@ from pyspark.sql.types import StructField, StructType, StringType, IntegerType, 
 from datetime import datetime
 import os
 import logging
+import re
 
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", datefmt="%y/%m/%d %H:%M:%S", level=logging.INFO)
 logger = logger = logging.getLogger(__name__)
 
+
+# https://pythex.org/
+# string test: 127.0.0.1 - - [01/Aug/1995:00:00:01 -0400] "GET /images/launch-logo.gif HTTP/1.0" 200 1839
+APACHE_ACCESS_LOG_PATTERN = '^(\S+) (\S+) (\S+) \[([\w:/]+\s[+\-]\d{4})\] "(\S+) (\S+)\s*(\S*)\s?" (\d{3}) (\S+)'
 PWD = os.getenv("PWD")
 
 
@@ -24,19 +29,27 @@ def schema():
 
 
 def parser(row):
-    raw = {}
-    item = row.asDict()["value"]
-    item = str(item).split(' ')
+    match = re.search(APACHE_ACCESS_LOG_PATTERN, row.__getattr__("value"))
+    # host      = match.group(1),
+    # client_id = match.group(2),
+    # user_id   = match.group(3),
+    # timestamp = parse_apache_time(match.group(4)),
+    # method    = match.group(5),
+    # endpoint  = match.group(6),
+    # protocol  = match.group(7),
+    # http_code = int(match.group(8)),
+    # bytes     = 0 if match.group(9) == '-' else int(match.group(9))
     try:
-        raw["host"] = item[0]
-        raw["timestamp"] = datetime.strptime(' '.join(item[3:5]).replace('[','').replace(']',''), "%d/%b/%Y:%H:%M:%S %z")
-        raw["request"] = ' '.join(item[5:8])
-        raw["http_code"] = item[8]
-        raw["bytes"] = 0 if item[9] == '-' else int(item[9])
+        return {
+            "host"      : match.group(1),
+            "timestamp" : datetime.strptime(match.group(4), "%d/%b/%Y:%H:%M:%S %z"),
+            "request"   : "{} {} {}".format(match.group(5), match.group(6), match.group(7)),
+            "http_code" : match.group(8),
+            "bytes"     : 0 if match.group(9) == '-' else int(match.group(9)),
+        }
     except Exception as e:
         # logger.error(e)
         return {}
-    return raw
 
 
 def run():
@@ -48,7 +61,6 @@ def run():
                                ("spark.driver.memory","4g")])
 
     spark = SparkSession.builder \
-                        .config(conf=conf) \
                         .appName("Test Spark") \
                         .getOrCreate()   
     
